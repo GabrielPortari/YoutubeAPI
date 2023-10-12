@@ -12,12 +12,16 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Toast;
 
 import com.example.youtubeclone.R;
 import com.example.youtubeclone.adapter.AdapterVideo;
 import com.example.youtubeclone.api.YoutubeService;
+import com.example.youtubeclone.helper.RecyclerItemClickListener;
 import com.example.youtubeclone.helper.YoutubeConfiguration;
+import com.example.youtubeclone.model.Item;
 import com.example.youtubeclone.model.Resultado;
 import com.example.youtubeclone.model.Video;
 import com.google.android.youtube.player.YouTubeBaseActivity;
@@ -38,7 +42,8 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerVideos;
     private AdapterVideo adapterVideo;
     private Retrofit retrofit;
-    private List<Video> listaVideo = new ArrayList<>();
+    private Resultado resultado;
+    private List<Item> videos = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,10 +57,7 @@ public class MainActivity extends AppCompatActivity {
 
         //configuração do recyclerview
         recuperarVideos();
-        adapterVideo = new AdapterVideo(listaVideo, this);
-        recyclerVideos.setHasFixedSize(true);
-        recyclerVideos.setLayoutManager(new LinearLayoutManager(this));
-        recyclerVideos.setAdapter(adapterVideo);
+        configurarRecyclerView();
     }
 
     private void recuperarVideos(){
@@ -66,6 +68,10 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call<Resultado> call, Response<Resultado> response) {
                 Log.d("INFO", "Response" + response.toString());
+                if(response.isSuccessful()){
+                    resultado = response.body();
+                    videos = resultado.items;
+                }
             }
 
             @Override
@@ -73,22 +79,32 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
-
-
     }
+    public void configurarRecyclerView(){
+        adapterVideo = new AdapterVideo(videos, this);
+        recyclerVideos.setHasFixedSize(true);
+        recyclerVideos.setLayoutManager(new LinearLayoutManager(this));
+        recyclerVideos.setAdapter(adapterVideo);
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu, menu);
+        recyclerVideos.addOnItemTouchListener(new RecyclerItemClickListener(this, recyclerVideos, new RecyclerItemClickListener.OnItemClickListener() {
+            @Override
+            public void onItemClick(View view, int position) {
+                Item video = videos.get(position);
+                String idVideo = video.id.videoId;
 
-        return super.onCreateOptionsMenu(menu);
-    }
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if(item.getItemId() == R.id.menu_busca){
-            startActivity(new Intent(getApplicationContext(), BuscaActivity.class));
-        }
-        return super.onOptionsItemSelected(item);
+                Intent intent = new Intent(MainActivity.this, PlayerActivity.class);
+                intent.putExtra("idVideo", idVideo);
+            }
+
+            @Override
+            public void onLongItemClick(View view, int position) {
+
+            }
+
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+            }
+        }));
     }
 }
